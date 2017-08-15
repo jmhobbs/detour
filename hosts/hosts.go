@@ -2,7 +2,10 @@ package hosts
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -63,7 +66,48 @@ func ExtractHostBlock(src io.Reader) (HostMapping, error) {
 	return mapping, nil
 }
 
-func UpsertHostBock(hosts map[string]string, sink io.Writer) error {
-	// TODO
-	return nil
+// TODO: Switch to a generic interface over os.File
+// TODO: Mac vs Windows line endings
+func UpsertHostBock(mapping HostMapping, sink *os.File) error {
+	// This could be optimized by reading from sink, writing to a temp file, then doing a rename
+	scanner := bufio.NewScanner(sink)
+	var buffer bytes.Buffer
+	start_found := false
+
+	// Extract lines that aren't ours and put in a buffer
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == START_DELIMITER {
+			start_found = true
+			continue
+		}
+
+		if start_found {
+			if line == END_DELIMITER {
+				start_found = false
+			}
+			continue
+		}
+
+		buffer.WriteString(line)
+		buffer.WriteByte('\n')
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	// Now write our block
+	buffer.WriteByte('\n')
+	buffer.WriteString(START_DELIMITER)
+	buffer.WriteByte('\n')
+	for ip, hosts := range mapping {
+		buffer.WriteString(fmt.Sprintf("%-15s\t%s\n", ip, strings.Join(hosts, " ")))
+	}
+	buffer.WriteString(END_DELIMITER)
+
+	sink.Truncate(0) // This is our os.File specific call
+	_, err := buffer.WriteTo(sink)
+
+	return err
 }
