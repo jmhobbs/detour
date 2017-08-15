@@ -106,7 +106,9 @@ func UpsertHostBock(mapping HostMapping, sink *os.File) error {
 	}
 	buffer.WriteString(END_DELIMITER)
 
-	sink.Truncate(0) // This is our os.File specific call
+	// This is our os.File specific call
+	sink.Seek(0, 0)
+	sink.Truncate(0)
 	_, err := buffer.WriteTo(sink)
 
 	return err
