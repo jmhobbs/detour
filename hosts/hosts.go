@@ -4,22 +4,25 @@ import (
 	"bufio"
 	"io"
 	"regexp"
+	"strings"
 )
+
+type HostMapping map[string][]string
 
 const START_DELIMITER = "### Detours Start ###"
 const END_DELIMITER = "### Detours End ###"
 
-var hosts_line_matcher *regexp.Regexp
+var ipv4_matcher *regexp.Regexp
 
 func init() {
 	// Very loose IPv4 matcher
-	hosts_line_matcher = regexp.MustCompile("^([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})\\s+(.+)")
+	ipv4_matcher = regexp.MustCompile("^([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})\\s+(.+)")
 }
 
-func ExtractHostBlock(src io.Reader) ([]string, error) {
+func ExtractHostBlock(src io.Reader) (HostMapping, error) {
 	scanner := bufio.NewScanner(src)
 	start_found := false
-	blocks := []string{}
+	blocks := HostMapping{}
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -33,8 +36,13 @@ func ExtractHostBlock(src io.Reader) ([]string, error) {
 				return blocks, nil
 			}
 
-			if hosts_line_matcher.MatchString(line) {
-				blocks = append(blocks, line)
+			ipv4_match := ipv4_matcher.FindStringSubmatch(line)
+			if ipv4_match != nil {
+				ip := ipv4_match[1] // TODO: Validation?
+				hosts := strings.Fields(ipv4_match[2])
+				// TODO: Tailing comments
+				// TODO: Don't clobber
+				blocks[ip] = hosts
 			}
 		}
 	}
