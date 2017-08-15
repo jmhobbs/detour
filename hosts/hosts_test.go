@@ -39,12 +39,15 @@ func TestExtractHostBlock(t *testing.T) {
 ### Detours Start ###
 127.0.0.1  capture.me
 0.0.0.0			and.capture.me but.also.me
+127.0.0.1  no.clobber.please.com
+192.168.1.1  this.com # but not this
 ### Detours End ###
 `)
 
 	expected := map[string][]string{
-		"127.0.0.1": []string{"capture.me"},
-		"0.0.0.0":   []string{"and.capture.me", "but.also.me"},
+		"127.0.0.1":   []string{"capture.me", "no.clobber.please.com"},
+		"0.0.0.0":     []string{"and.capture.me", "but.also.me"},
+		"192.168.1.1": []string{"this.com"},
 	}
 
 	mapping, err := ExtractHostBlock(src)

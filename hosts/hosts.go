@@ -22,7 +22,7 @@ func init() {
 func ExtractHostBlock(src io.Reader) (HostMapping, error) {
 	scanner := bufio.NewScanner(src)
 	start_found := false
-	blocks := HostMapping{}
+	mapping := HostMapping{}
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -33,25 +33,34 @@ func ExtractHostBlock(src io.Reader) (HostMapping, error) {
 
 		if start_found {
 			if line == END_DELIMITER {
-				return blocks, nil
+				return mapping, nil
 			}
 
 			ipv4_match := ipv4_matcher.FindStringSubmatch(line)
 			if ipv4_match != nil {
 				ip := ipv4_match[1] // TODO: Validation?
-				hosts := strings.Fields(ipv4_match[2])
-				// TODO: Tailing comments
-				// TODO: Don't clobber
-				blocks[ip] = hosts
+				hosts := ipv4_match[2]
+
+				// Strip trailing comments
+				if idx := strings.Index(hosts, "#"); idx != -1 {
+					hosts = hosts[0:idx]
+				}
+
+				// No clobbering
+				if val, exists := mapping[ip]; exists {
+					mapping[ip] = append(val, strings.Fields(hosts)...)
+				} else {
+					mapping[ip] = strings.Fields(hosts)
+				}
 			}
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		return blocks, err
+		return mapping, err
 	}
 
-	return blocks, nil
+	return mapping, nil
 }
 
 func UpsertHostBock(hosts map[string]string, sink io.Writer) error {
