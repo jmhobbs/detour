@@ -58,7 +58,64 @@ func list() {
 }
 
 func set() {
+	if len(os.Args) != 4 {
+		usage()
+	}
+	// TODO: Test if args match IP and hostname formats
+
+	file, err := os.OpenFile("/etc/hosts", os.O_RDWR, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	mapping, err := hosts.ExtractHostBlock(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mapping.Add(os.Args[3], os.Args[2])
+
+	file.Seek(0, 0)
+	err = hosts.UpsertHostBock(mapping, file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Detoured %s to %s\n", os.Args[2], os.Args[3])
 }
 
 func unset() {
+	if len(os.Args) != 3 {
+		usage()
+	}
+
+	file, err := os.OpenFile("/etc/hosts", os.O_RDWR, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	mapping, err := hosts.ExtractHostBlock(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mapping.Remove(os.Args[2])
+
+	file.Seek(0, 0)
+	err = hosts.UpsertHostBock(mapping, file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Removed detour to %s\n", os.Args[2])
 }

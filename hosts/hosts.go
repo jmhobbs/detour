@@ -10,8 +10,6 @@ import (
 	"strings"
 )
 
-type HostMapping map[string][]string
-
 const START_DELIMITER = "### Detours Start ###"
 const END_DELIMITER = "### Detours End ###"
 
@@ -49,12 +47,7 @@ func ExtractHostBlock(src io.Reader) (HostMapping, error) {
 					hosts = hosts[0:idx]
 				}
 
-				// No clobbering
-				if val, exists := mapping[ip]; exists {
-					mapping[ip] = append(val, strings.Fields(hosts)...)
-				} else {
-					mapping[ip] = strings.Fields(hosts)
-				}
+				mapping.Add(ip, hosts)
 			}
 		}
 	}
