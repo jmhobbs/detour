@@ -3,7 +3,6 @@ package hosts
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"regexp"
@@ -39,7 +38,7 @@ func ExtractHostBlock(src io.Reader) (HostMapping, error) {
 
 			ipv4_match := ipv4_matcher.FindStringSubmatch(line)
 			if ipv4_match != nil {
-				ip := ipv4_match[1] // TODO: Validation?
+				ip := IPAddress(ipv4_match[1]) // TODO: Validation?
 				hosts := ipv4_match[2]
 
 				// Strip trailing comments
@@ -47,7 +46,7 @@ func ExtractHostBlock(src io.Reader) (HostMapping, error) {
 					hosts = hosts[0:idx]
 				}
 
-				mapping.Add(ip, hosts)
+				mapping.AddMany(ip, hosts)
 			}
 		}
 	}
@@ -94,15 +93,26 @@ func UpsertHostBock(mapping HostMapping, sink *os.File) error {
 	buffer.WriteByte('\n')
 	buffer.WriteString(START_DELIMITER)
 	buffer.WriteByte('\n')
-	for ip, hosts := range mapping {
-		buffer.WriteString(fmt.Sprintf("%-15s\t%s\n", ip, strings.Join(hosts, " ")))
+
+	writer := bufio.NewWriter(&buffer)
+
+	err := mapping.Write(writer)
+	if err != nil {
+		return err
 	}
+
+	writer.Flush()
+
+	//for host, ip := range mapping {
+	//fmt.Println(ip, hosts)
+	//buffer.WriteString(fmt.Sprintf("%-15s\t%s\n", ip, strings.Join(hosts, " ")))
+	//}
 	buffer.WriteString(END_DELIMITER)
 
 	// This is our os.File specific call
 	sink.Seek(0, 0)
 	sink.Truncate(0)
-	_, err := buffer.WriteTo(sink)
+	_, err = buffer.WriteTo(sink)
 
 	return err
 }

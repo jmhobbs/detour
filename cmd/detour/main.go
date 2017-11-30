@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/jmhobbs/detour/hosts"
+	"github.com/jmhobbs/detour/pkg/hosts"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func usage() {
 	fmt.Println(`usage: detour <command> ...
 
 Commands
-  list                  - Show all current detours
+  list                  - Show all active detours
   set <hostname> <ip>   - Set a detour
   unset <hostname>      - Remove a detour
 `)
@@ -50,10 +50,8 @@ func list() {
 		log.Fatal(err)
 	}
 
-	for ip, hosts := range mapping {
-		for _, host := range hosts {
-			fmt.Printf("%-15s    %s\n", ip, host)
-		}
+	for host, ip := range mapping {
+		fmt.Printf("%-15s    %s\n", ip, host)
 	}
 }
 
@@ -78,7 +76,7 @@ func set() {
 		log.Fatal(err)
 	}
 
-	mapping.Add(os.Args[3], os.Args[2])
+	mapping.Add(hosts.IPAddress(os.Args[3]), hosts.Hostname(os.Args[2]))
 
 	file.Seek(0, 0)
 	err = hosts.UpsertHostBock(mapping, file)
@@ -109,7 +107,12 @@ func unset() {
 		log.Fatal(err)
 	}
 
-	mapping.Remove(os.Args[2])
+	if mapping[hosts.Hostname(os.Args[2])] == "" {
+		log.Printf("No detour for %s\n", os.Args[2])
+		return
+	}
+
+	mapping.Remove(hosts.Hostname(os.Args[2]))
 
 	file.Seek(0, 0)
 	err = hosts.UpsertHostBock(mapping, file)

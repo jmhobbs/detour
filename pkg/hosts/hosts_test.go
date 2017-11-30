@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -14,7 +13,7 @@ import (
 func TestIPv4Matcher(t *testing.T) {
 	positive := []string{
 		"196.128.1.1  some.domain.com",
-		"127.0.0.1\ta.com b.com",
+		"127.0.0.1\ta.com  b.com",
 		"8.8.8.8    dns.thegoogle.com",
 	}
 
@@ -50,10 +49,12 @@ func TestExtractHostBlock(t *testing.T) {
 ### Detours End ###
 `)
 
-	expected := map[string][]string{
-		"127.0.0.1":   []string{"capture.me", "no.clobber.please.com"},
-		"0.0.0.0":     []string{"and.capture.me", "but.also.me"},
-		"192.168.1.1": []string{"this.com"},
+	expected := HostMapping{
+		"capture.me":            "127.0.0.1",
+		"no.clobber.please.com": "127.0.0.1",
+		"and.capture.me":        "0.0.0.0",
+		"but.also.me":           "0.0.0.0",
+		"this.com":              "192.168.1.1",
 	}
 
 	mapping, err := ExtractHostBlock(src)
@@ -61,9 +62,9 @@ func TestExtractHostBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for ip, hosts := range expected {
-		if !reflect.DeepEqual(mapping[ip], hosts) {
-			t.Errorf("Error mapping '%s', expected '%v' got '%v'", ip, hosts, mapping[ip])
+	for host, ip := range expected {
+		if mapping[host] != ip {
+			t.Errorf("Error mapping '%s', expected '%v' got '%v'", host, ip, mapping[host])
 		}
 	}
 }
@@ -79,11 +80,11 @@ func TestUpsertHostBlockInsert(t *testing.T) {
 	}()
 
 	hosts_content := "127.0.0.1  ignore.this.com"
-	mapping := HostMapping{"192.168.1.1": []string{"google.com", "velvetcache.org"}}
+	mapping := HostMapping{"google.com": "192.168.1.1", "velvetcache.org": "192.168.1.1"}
 	expected := []byte(`127.0.0.1  ignore.this.com
 
 ### Detours Start ###
-192.168.1.1    	google.com velvetcache.org
+192.168.1.1	google.com  velvetcache.org
 ### Detours End ###`)
 
 	if _, err := tmpfile.WriteString(hosts_content); err != nil {
@@ -129,7 +130,7 @@ func TestUpsertHostBlockUpdate(t *testing.T) {
 ### Detours End ###
 127.0.0.1  this-came-after.org`
 
-	mapping := HostMapping{"192.168.1.1": []string{"google.com", "velvetcache.org"}, "127.0.0.1": []string{"example.net"}}
+	mapping := HostMapping{"google.com": "192.168.1.1", "velvetcache.org": "192.168.1.1", "example.net": "127.0.0.1"}
 	expected := []byte(`
 127.0.0.1  ignore.this.com
 
@@ -137,8 +138,8 @@ func TestUpsertHostBlockUpdate(t *testing.T) {
 127.0.0.1  this-came-after.org
 
 ### Detours Start ###
-192.168.1.1    	google.com velvetcache.org
-127.0.0.1      	example.net
+192.168.1.1	google.com  velvetcache.org
+127.0.0.1	example.net
 ### Detours End ###`)
 
 	if _, err := tmpfile.WriteString(hosts_content); err != nil {
