@@ -2,9 +2,83 @@
 <html lang="en">
   <head>
     <meta charset="utf8" />
+    <link rel="stylesheet" href="/static/css/photon.min.css" />
+    <link rel="stylesheet" href="/static/css/detour.css" />
     <title>detour</title>
   </head>
   <body>
-    <h1>Detour</h1>
+    <div class="window">
+      <header class="toolbar toolbar-header">
+        <h1 class="title">Detour</h1>
+      </header>
+      <div class="window-content">
+        <table class="table-striped">
+          <thead>
+            <tr>
+              <th>Hostname</th>
+              <th>IP Address</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="mapping">
+          </tbody>
+        </table>
+      </div>
+      <footer class="toolbar toolbar-footer">
+        <div class="toolbar-actions">
+          <button class="btn btn-default pull-right">
+            <span class="icon icon-plus"></span>
+          </button>
+        </div>
+      </footer>
+    </div>
+    <div class="overlay"></div>
+    <div class="window overlay-window">
+      <header class="toolbar toolbar-header">
+        <h1 class="title">Detour</h1>
+      </header>
+      <div class="window-content">
+        <form style="padding: 10px;">
+          <div class="form-group">
+            <label>Hostname</label>
+            <input type="text" class="form-control" id="hostname" placeholder="example.com">
+          </div>
+          <div class="form-group">
+            <label>IP Address</label>
+            <input type="text" class="form-control" id="address" placeholder="127.0.0.1">
+          </div>
+        </form>
+      </div>
+      <footer class="toolbar toolbar-footer">
+        <div class="toolbar-actions">
+          <button class="btn btn-default pull-left" id="form-cancel">Cancel</button>
+          <button class="btn btn-primary pull-right" id="form-save">Save</button>
+        </div>
+      </footer>
+    </div>
+    <div class="window overlay-loading-window">
+      <div class="window-content">
+        <div class="loader">Working...</div>
+      </div>
+    </div>
+    <script id="row-template" type="text/x-tmpl">
+<tr>
+  <td class="hostname">{%= o.hostname %}</td>
+  <td class="address">{%= o.address %}</td>
+  <td>
+    <div class="btn-group">
+      <button class="btn btn-default">
+        <span class="icon icon-pencil"></span>
+      </button>
+      <button class="btn btn-default">
+        <span class="icon icon-cancel"></span>
+      </button>
+    </div>
+  </td>
+</tr>
+    </script>
+    <script src="/static/js/zepto.min.js"></script>
+    <script src="/static/js/tmpl.min.js"></script>
+    <script src="/static/js/main.js"></script>
   </body>
 </html>
