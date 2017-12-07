@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gobuffalo/packr"
 	"github.com/jmhobbs/detour/pkg/hosts"
 )
 
@@ -14,11 +15,21 @@ type APIResponse struct {
 	Hosts hosts.HostMapping `json:"hosts"`
 }
 
+var (
+	staticBox packr.Box
+	assetBox  packr.Box
+)
+
+func init() {
+	staticBox = packr.NewBox("./static")
+	assetBox = packr.NewBox("./assets")
+}
+
 func main() {
 	http.HandleFunc("/api/list", list)
 	http.Handle("/api/set", restrictMethod(http.HandlerFunc(set), "POST"))
 	http.Handle("/api/unset", restrictMethod(http.HandlerFunc(unset), "POST"))
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(staticBox)))
 	http.HandleFunc("/", index)
 	log.Println("detour is up and running at http://127.0.0.1:9090/")
 	http.ListenAndServe("127.0.0.1:9090", nil)
@@ -32,7 +43,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, _ := template.ParseFiles("assets/index.html")
+	t, _ := template.New("index").Parse(assetBox.String("index.html"))
 	t.Execute(w, map[string]interface{}{})
 }
 
